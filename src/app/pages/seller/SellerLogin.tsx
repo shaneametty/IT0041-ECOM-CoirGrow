@@ -103,13 +103,7 @@ export function SellerLogin() {
                 </button>
               </form>
 
-              {/* Demo Credentials */}
-              <div style={{ backgroundColor: '#111827', borderColor: '#374151' }} className="border rounded-xl p-4 mt-6">
-                <p style={{ color: '#6b7280' }} className="text-xs text-center mb-2">Demo Seller Credentials</p>
-                <p style={{ color: '#9ca3af' }} className="text-xs text-center font-mono">
-                  seller@coirgrow.ph / seller123
-                </p>
-              </div>
+
             </div>
           </div>
 

@@ -117,13 +117,6 @@ export function Login() {
                 </p>
               </div>
 
-              <div style={{ borderColor: '#d8f3dc' }} className="border-t mt-6 pt-6">
-                <p className="text-gray-400 text-xs text-center mb-3">Demo Buyer Account</p>
-                <div style={{ backgroundColor: '#f0fdf4', borderColor: '#86efac' }} className="border rounded-xl p-3 text-xs text-center">
-                  <p className="text-gray-500">Register a new account to try the buyer experience.</p>
-                  <p style={{ color: '#2d6a4f' }} className="mt-1 font-medium">Or use: <span className="font-mono">buyer@demo.com / demo123</span> (after registering)</p>
-                </div>
-              </div>
             </div>
           </div>
 
