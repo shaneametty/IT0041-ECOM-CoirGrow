@@ -69,7 +69,7 @@ export function Footer() {
             <ul className="space-y-3">
               <li className="flex items-start gap-2">
                 <MapPin style={{ color: '#95d5b2' }} className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span style={{ color: '#95d5b2' }} className="text-sm">123 Coir St., Quezon City, Metro Manila, Philippines</span>
+                <span style={{ color: '#95d5b2' }} className="text-sm">Padre Paredes St, Sampaloc, Manila, 1015 Metro Manila</span>
               </li>
               <li className="flex items-center gap-2">
                 <Phone style={{ color: '#95d5b2' }} className="w-4 h-4 flex-shrink-0" />
@@ -77,7 +77,7 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <Mail style={{ color: '#95d5b2' }} className="w-4 h-4 flex-shrink-0" />
-                <span style={{ color: '#95d5b2' }} className="text-sm">hello@coirgrow.ph</span>
+                <span style={{ color: '#95d5b2' }} className="text-sm">shanefigo@coirgrow.ph</span>
               </li>
             </ul>
           </div>
