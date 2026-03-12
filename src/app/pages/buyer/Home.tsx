@@ -129,7 +129,7 @@ export function Home() {
             <div>
               <h2 style={{ color: '#1a3a2a' }} className="text-3xl font-bold mb-4">Why Choose Coir?</h2>
               <p style={{ color: '#2d6a4f' }} className="mb-6 leading-relaxed">
-                Coconut coir is a revolutionary natural fiber extracted from coconut husks — a byproduct that would otherwise go to waste. It's the Philippines' answer to sustainable urban gardening.
+                Coconut coir is a revolutionary natural fiber extracted from coconut husk, a byproduct that would otherwise go to waste. It's the Philippines' answer to sustainable urban gardening.
               </p>
               <ul className="space-y-3">
                 {[
@@ -178,7 +178,7 @@ export function Home() {
       {/* Testimonials */}
       <section className="max-w-7xl mx-auto px-4 py-16">
         <h2 style={{ color: '#1a3a2a' }} className="text-3xl font-bold text-center mb-2">What Gardeners Say</h2>
-        <p style={{ color: '#52b788' }} className="text-center mb-10">Loved by plant parents across the Philippines</p>
+        <p style={{ color: '#52b788' }} className="text-center mb-10">Loved across the Philippines</p>
         <div className="grid md:grid-cols-3 gap-6">
           {[
             { name: 'Maria Santos', location: 'Quezon City', text: 'The coir pots are amazing! My succulents have never been healthier. Love that I can plant them directly into the ground.', stars: 5 },
