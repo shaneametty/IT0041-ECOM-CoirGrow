@@ -9,8 +9,8 @@ export function SellerNav() {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleLogout = () => {
-    sellerLogout();
+  const handleLogout = async () => {
+    await sellerLogout();
     navigate('/seller/login');
   };
 

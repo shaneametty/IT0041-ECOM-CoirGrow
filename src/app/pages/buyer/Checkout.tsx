@@ -34,11 +34,11 @@ export function Checkout() {
   const shippingFee = deliveryMethod === 'pickup' ? 0 : subtotal >= 500 ? 0 : 80;
   const total = subtotal + shippingFee;
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!address.trim() && deliveryMethod === 'delivery') { alert('Please enter your delivery address.'); return; }
     setLoading(true);
-    setTimeout(() => {
-      const id = placeOrder({
+    try {
+      const id = await placeOrder({
         items: cartItems.map(item => ({
           productId: item.productId,
           productName: item.product!.name,
@@ -52,10 +52,17 @@ export function Checkout() {
         deliveryMethod,
         address: deliveryMethod === 'pickup' ? 'Store Pickup – 123 Coir St., Quezon City' : address,
       });
-      setOrderId(id);
-      setSuccess(true);
+      if (id) {
+        setOrderId(id);
+        setSuccess(true);
+      } else {
+        alert('Failed to place order. Please try again.');
+      }
+    } catch (err: any) {
+      alert('Error placing order: ' + err.message);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   if (!currentUser) {

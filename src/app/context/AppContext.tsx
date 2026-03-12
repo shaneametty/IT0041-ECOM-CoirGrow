@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '../../lib/supabase';
 
 export interface User {
   id: string;
   email: string;
-  password: string;
   name: string;
   address: string;
   mobile: string;
@@ -62,260 +62,31 @@ export interface StorefrontSettings {
 }
 
 interface AppContextType {
-  users: User[];
+  users: User[]; // keeping for compat if needed, better to fetch per need.
   currentUser: User | null;
   currentSeller: User | null;
   products: Product[];
   cart: CartItem[];
   orders: Order[];
   storefrontSettings: StorefrontSettings;
-  login: (email: string, password: string) => boolean;
-  sellerLogin: (email: string, password: string) => boolean;
-  logout: () => void;
-  sellerLogout: () => void;
-  register: (data: Omit<User, 'id' | 'role' | 'createdAt'>) => { success: boolean; message: string };
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  sellerLogin: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  sellerLogout: () => Promise<void>;
+  register: (data: any) => Promise<{ success: boolean; message: string }>;
   addToCart: (productId: string, quantity: number) => void;
   updateCartItem: (productId: string, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
-  placeOrder: (orderData: Omit<Order, 'id' | 'userId' | 'createdAt' | 'status'>) => string;
-  addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'sold'>) => void;
-  updateProduct: (id: string, product: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
-  updateStorefront: (settings: Partial<StorefrontSettings>) => void;
+  placeOrder: (orderData: any) => Promise<string | null>;
+  addProduct: (product: any) => Promise<void>;
+  updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  updateStorefront: (settings: Partial<StorefrontSettings>) => Promise<void>;
   getProductById: (id: string) => Product | undefined;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
-
-const DEFAULT_PRODUCTS: Product[] = [
-  {
-    id: 'p1',
-    name: 'Coir Pot (Small)',
-    description: '100% natural coconut coir small pot, perfect for seedlings and succulents. Biodegradable and eco-friendly.',
-    price: 45,
-    category: 'Pots & Containers',
-    stock: 150,
-    image: 'https://images.unsplash.com/photo-1574483078807-f1c78259e290?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400',
-    tags: ['new', 'featured'],
-    featured: true,
-    sold: 320,
-    createdAt: '2026-01-15T00:00:00.000Z',
-  },
-  {
-    id: 'p2',
-    name: 'Coir Pot (Medium)',
-    description: 'Medium-sized coir pot ideal for herbs, flowers and small shrubs. Plant directly in the ground — pot decomposes naturally.',
-    price: 75,
-    category: 'Pots & Containers',
-    stock: 120,
-    image: 'https://images.unsplash.com/photo-1768700583700-969654256d27?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400',
-    tags: ['bestseller', 'featured'],
-    featured: true,
-    sold: 890,
-    createdAt: '2025-11-10T00:00:00.000Z',
-  },
-  {
-    id: 'p3',
-    name: 'Coir Pot (Large)',
-    description: 'Large coir pot for bigger plants, vegetables, and ornamentals. Excellent water retention and aeration.',
-    price: 120,
-    category: 'Pots & Containers',
-    stock: 80,
-    image: 'https://images.unsplash.com/photo-1744659747310-39564f92c25b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400',
-    tags: ['bestseller'],
-    featured: true,
-    sold: 540,
-    createdAt: '2025-10-05T00:00:00.000Z',
-  },
-  {
-    id: 'p4',
-    name: 'Hanging Coir Basket',
-    description: 'Beautiful woven coir hanging basket for trailing plants and ferns. Natural look, strong and durable.',
-    price: 150,
-    category: 'Pots & Containers',
-    stock: 60,
-    image: 'https://images.unsplash.com/photo-1658600850748-79feefeb18f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400',
-    tags: ['trending', 'featured'],
-    featured: true,
-    sold: 410,
-    createdAt: '2026-01-20T00:00:00.000Z',
-  },
-  {
-    id: 'p5',
-    name: 'Coco Peat Block (5kg)',
-    description: 'Compressed coco peat block that expands with water. Excellent soil amendment for better drainage and aeration.',
-    price: 89,
-    category: 'Growing Media',
-    stock: 200,
-    image: 'https://images.unsplash.com/photo-1729368630046-8f0051467115?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400',
-    tags: ['new', 'trending'],
-    featured: true,
-    sold: 670,
-    createdAt: '2026-02-01T00:00:00.000Z',
-  },
-  {
-    id: 'p6',
-    name: 'Coco Fiber Mulch (1kg)',
-    description: 'Natural coir fiber mulch to protect soil moisture, reduce weeds, and improve garden aesthetics.',
-    price: 65,
-    category: 'Growing Media',
-    stock: 180,
-    image: 'https://images.unsplash.com/photo-1752775312083-1cefe2f93358?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400',
-    tags: ['trending'],
-    featured: false,
-    sold: 380,
-    createdAt: '2025-12-01T00:00:00.000Z',
-  },
-  {
-    id: 'p7',
-    name: 'Coir Seedling Tray (12-cell)',
-    description: '12-cell biodegradable seedling tray made from compressed coir. Transplant directly into soil without disturbing roots.',
-    price: 110,
-    category: 'Seedling Supplies',
-    stock: 95,
-    image: 'https://images.unsplash.com/photo-1763038922944-c6199c299f30?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400',
-    tags: ['new'],
-    featured: false,
-    sold: 215,
-    createdAt: '2026-02-10T00:00:00.000Z',
-  },
-  {
-    id: 'p8',
-    name: 'Coco Peat + Compost Mix (10L)',
-    description: 'Ready-to-use growing mix combining premium coco peat and organic compost. Perfect for potted plants.',
-    price: 135,
-    category: 'Growing Media',
-    stock: 110,
-    image: 'https://images.unsplash.com/photo-1574483078807-f1c78259e290?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400',
-    tags: ['bestseller'],
-    featured: false,
-    sold: 760,
-    createdAt: '2025-09-15T00:00:00.000Z',
-  },
-  {
-    id: 'p9',
-    name: 'Coir Weed Control Mat',
-    description: 'Natural weed barrier mat made from coconut fiber. Prevents weed growth while allowing water and nutrients through.',
-    price: 200,
-    category: 'Garden Accessories',
-    stock: 45,
-    image: 'https://images.unsplash.com/photo-1744659747310-39564f92c25b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400',
-    tags: ['trending'],
-    featured: false,
-    sold: 180,
-    createdAt: '2026-01-05T00:00:00.000Z',
-  },
-  {
-    id: 'p10',
-    name: 'Coir Grow Bag (Large)',
-    description: 'Large coir grow bag for vegetables, tomatoes, and root crops. Reusable and fully biodegradable at end of life.',
-    price: 95,
-    category: 'Pots & Containers',
-    stock: 70,
-    image: 'https://images.unsplash.com/photo-1658600850748-79feefeb18f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400',
-    tags: ['new', 'trending'],
-    featured: false,
-    sold: 290,
-    createdAt: '2026-02-15T00:00:00.000Z',
-  },
-];
-
-const DEFAULT_STOREFRONT: StorefrontSettings = {
-  bannerTitle: 'Grow Green, Grow Natural',
-  bannerSubtitle: 'Eco-friendly 100% coconut coir gardening products for the modern Filipino plant lover. Sustainable, biodegradable, and made with care.',
-  bannerCta: 'Shop Now',
-  announcement: '🌿 Free shipping on orders over ₱500! Use code COIRGROW at checkout.',
-  showAnnouncement: true,
-  featuredTags: ['new', 'trending', 'bestseller'],
-  heroImage: 'https://images.unsplash.com/photo-1763038922944-c6199c299f30?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1200',
-};
-
-const DEFAULT_SELLER: User = {
-  id: 'seller1',
-  email: 'seller@coirgrow.ph',
-  password: 'seller123',
-  name: 'CoirGrow PH Admin',
-  address: 'Quezon City, Metro Manila, Philippines',
-  mobile: '09171234567',
-  role: 'seller',
-  createdAt: '2025-01-01T00:00:00.000Z',
-};
-
-const DEFAULT_ORDERS: Order[] = [
-  {
-    id: 'ord-001',
-    userId: 'demo-buyer',
-    items: [
-      { productId: 'p2', productName: 'Coir Pot (Medium)', price: 75, quantity: 3 },
-      { productId: 'p5', productName: 'Coco Peat Block (5kg)', price: 89, quantity: 2 },
-    ],
-    subtotal: 403,
-    shippingFee: 80,
-    total: 483,
-    paymentMethod: 'GCash',
-    deliveryMethod: 'delivery',
-    address: '123 Sampaguita St., Quezon City',
-    status: 'Delivered',
-    createdAt: '2026-02-10T09:30:00.000Z',
-  },
-  {
-    id: 'ord-002',
-    userId: 'demo-buyer',
-    items: [
-      { productId: 'p4', productName: 'Hanging Coir Basket', price: 150, quantity: 2 },
-    ],
-    subtotal: 300,
-    shippingFee: 80,
-    total: 380,
-    paymentMethod: 'Cash on Delivery',
-    deliveryMethod: 'delivery',
-    address: '123 Sampaguita St., Quezon City',
-    status: 'Delivered',
-    createdAt: '2026-02-20T14:00:00.000Z',
-  },
-  {
-    id: 'ord-003',
-    userId: 'demo-buyer',
-    items: [
-      { productId: 'p1', productName: 'Coir Pot (Small)', price: 45, quantity: 5 },
-      { productId: 'p6', productName: 'Coco Fiber Mulch (1kg)', price: 65, quantity: 1 },
-    ],
-    subtotal: 290,
-    shippingFee: 0,
-    total: 290,
-    paymentMethod: 'Maya',
-    deliveryMethod: 'pickup',
-    address: 'Store Pickup',
-    status: 'Completed',
-    createdAt: '2026-03-01T11:00:00.000Z',
-  },
-  // Extra orders for reports
-  {
-    id: 'ord-004',
-    userId: 'user-x',
-    items: [{ productId: 'p8', productName: 'Coco Peat + Compost Mix (10L)', price: 135, quantity: 2 }],
-    subtotal: 270, shippingFee: 80, total: 350,
-    paymentMethod: 'GCash', deliveryMethod: 'delivery', address: 'Makati City',
-    status: 'Delivered', createdAt: '2026-03-02T10:00:00.000Z',
-  },
-  {
-    id: 'ord-005',
-    userId: 'user-y',
-    items: [{ productId: 'p3', productName: 'Coir Pot (Large)', price: 120, quantity: 3 }],
-    subtotal: 360, shippingFee: 80, total: 440,
-    paymentMethod: 'Cash on Delivery', deliveryMethod: 'delivery', address: 'Pasig City',
-    status: 'Delivered', createdAt: '2026-03-03T15:00:00.000Z',
-  },
-  {
-    id: 'ord-006',
-    userId: 'user-z',
-    items: [{ productId: 'p7', productName: 'Coir Seedling Tray (12-cell)', price: 110, quantity: 4 }],
-    subtotal: 440, shippingFee: 0, total: 440,
-    paymentMethod: 'Maya', deliveryMethod: 'pickup', address: 'Store Pickup',
-    status: 'Processing', createdAt: '2026-03-04T08:00:00.000Z',
-  },
-];
 
 function loadFromStorage<T>(key: string, defaultValue: T): T {
   try {
@@ -333,69 +104,227 @@ function saveToStorage<T>(key: string, value: T): void {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [users, setUsers] = useState<User[]>(() => {
-    const stored = loadFromStorage<User[]>('cg_users', []);
-    const hasSeller = stored.some(u => u.role === 'seller');
-    if (!hasSeller) return [...stored, DEFAULT_SELLER];
-    return stored;
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentSeller, setCurrentSeller] = useState<User | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => loadFromStorage('cg_cart', []));
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [storefrontSettings, setStorefrontSettings] = useState<StorefrontSettings>({
+    bannerTitle: 'Grow Green, Grow Natural',
+    bannerSubtitle: 'Eco-friendly 100% coconut coir gardening products for the modern Filipino plant lover.',
+    bannerCta: 'Shop Now',
+    announcement: '🌿 Free shipping on orders over ₱500!',
+    showAnnouncement: true,
+    featuredTags: ['new', 'trending', 'bestseller'],
+    heroImage: ''
   });
 
-  const [currentUser, setCurrentUser] = useState<User | null>(() =>
-    loadFromStorage('cg_currentUser', null)
-  );
-  const [currentSeller, setCurrentSeller] = useState<User | null>(() =>
-    loadFromStorage('cg_currentSeller', null)
-  );
-  const [products, setProducts] = useState<Product[]>(() => {
-    const stored = loadFromStorage<Product[]>('cg_products', []);
-    return stored.length > 0 ? stored : DEFAULT_PRODUCTS;
-  });
-  const [cart, setCart] = useState<CartItem[]>(() =>
-    loadFromStorage('cg_cart', [])
-  );
-  const [orders, setOrders] = useState<Order[]>(() => {
-    const stored = loadFromStorage<Order[]>('cg_orders', []);
-    return stored.length > 0 ? stored : DEFAULT_ORDERS;
-  });
-  const [storefrontSettings, setStorefrontSettings] = useState<StorefrontSettings>(() =>
-    loadFromStorage('cg_storefront', DEFAULT_STOREFRONT)
-  );
-
-  useEffect(() => { saveToStorage('cg_users', users); }, [users]);
-  useEffect(() => { saveToStorage('cg_currentUser', currentUser); }, [currentUser]);
-  useEffect(() => { saveToStorage('cg_currentSeller', currentSeller); }, [currentSeller]);
-  useEffect(() => { saveToStorage('cg_products', products); }, [products]);
   useEffect(() => { saveToStorage('cg_cart', cart); }, [cart]);
-  useEffect(() => { saveToStorage('cg_orders', orders); }, [orders]);
-  useEffect(() => { saveToStorage('cg_storefront', storefrontSettings); }, [storefrontSettings]);
 
-  const login = (email: string, password: string): boolean => {
-    const user = users.find(u => u.email === email && u.password === password && u.role === 'buyer');
-    if (user) { setCurrentUser(user); return true; }
-    return false;
-  };
+  // Load initial data from Supabase
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      // Fetch Products
+      const { data: pData } = await supabase.from('products').select('*');
+      if (pData) {
+        setProducts(pData.map(p => {
+          const defaultTags = [];
+          if (p.is_featured) defaultTags.push('featured');
+          // For demo purposes, add tags so they appear in the storefront sections
+          if (p.name.includes('Blocks') || p.name.includes('Starter')) defaultTags.push('bestseller');
+          if (p.name.includes('Pole') || p.name.includes('Chips')) defaultTags.push('trending');
+          if (p.name.includes('Pots')) defaultTags.push('new');
 
-  const sellerLogin = (email: string, password: string): boolean => {
-    const seller = users.find(u => u.email === email && u.password === password && u.role === 'seller');
-    if (seller) { setCurrentSeller(seller); return true; }
-    return false;
-  };
+          // Also merge in the tags stored in the database
+          const dbTags = p.tags || [];
 
-  const logout = () => setCurrentUser(null);
-  const sellerLogout = () => setCurrentSeller(null);
+          return {
+            ...p,
+            image: p.image_url,
+            featured: p.is_featured,
+            createdAt: p.created_at,
+            sold: p.sold || 0,
+            tags: [...new Set([...dbTags, ...defaultTags, p.category.toLowerCase()])].filter(Boolean)
+          };
+        }));
+      }
 
-  const register = (data: Omit<User, 'id' | 'role' | 'createdAt'>): { success: boolean; message: string } => {
-    if (users.some(u => u.email === data.email)) {
-      return { success: false, message: 'Email already registered.' };
-    }
-    const newUser: User = {
-      ...data,
-      id: `user-${Date.now()}`,
-      role: 'buyer',
-      createdAt: new Date().toISOString(),
+      // Fetch Storefront Settings
+      const { data: sData } = await supabase.from('storefront_settings').select('*').single();
+      if (sData) {
+        setStorefrontSettings({
+          bannerTitle: sData.banner_title,
+          bannerSubtitle: sData.banner_subtitle,
+          bannerCta: sData.banner_cta,
+          announcement: sData.announcement,
+          showAnnouncement: sData.show_announcement,
+          featuredTags: sData.featured_tags || [],
+          heroImage: sData.hero_image
+        });
+      }
+
+      // Check auth session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        fetchProfileAndSetUser(session.user.id);
+      }
     };
-    setUsers(prev => [...prev, newUser]);
-    setCurrentUser(newUser);
+
+    fetchInitialData();
+
+    // Listen to Auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        fetchProfileAndSetUser(session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        setCurrentSeller(null);
+        setOrders([]);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const fetchProfileAndSetUser = async (userId: string) => {
+    console.log("Fetching profile for user:", userId);
+    let { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+    
+    // Auto-heal: If the profile is missing (e.g., user created manually in dashboard without trigger)
+    if (error) {
+      console.warn("Profile missing/error! Attempting to auto-create...", error);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const newEmail = sessionData?.session?.user?.email || `user-${userId}@example.com`;
+      const fallbackName = sessionData?.session?.user?.user_metadata?.full_name || 'New User';
+      const fallbackRole = sessionData?.session?.user?.user_metadata?.role || 'buyer';
+      
+      const { data: newProfile, error: insertError } = await supabase.from('profiles').upsert({
+        id: userId,
+        email: newEmail,
+        full_name: fallbackName,
+        role: fallbackRole
+      }).select().single();
+
+      if (!insertError && newProfile) {
+        data = newProfile;
+        error = null;
+        console.log("Auto-created profile successfully.");
+      } else {
+        console.error("Failed to auto-create profile:", insertError);
+      }
+    }
+    
+    if (data && !error) {
+      console.log("Profile found:", data);
+      const u: User = {
+        id: data.id,
+        email: data.email,
+        name: data.full_name || '',
+        address: data.address || '',
+        mobile: data.mobile || '',
+        role: data.role as 'buyer' | 'seller',
+        createdAt: data.created_at
+      };
+      if (u.role === 'buyer') {
+        setCurrentUser(u);
+        fetchOrders(u.id);
+      } else {
+        setCurrentSeller(u);
+        fetchAllOrders();
+      }
+    } else {
+        console.error("No profile found for user, currentUser will remain null.");
+    }
+  };
+
+  const fetchOrders = async (userId: string) => {
+    const { data } = await supabase.from('orders').select('*, order_items(*, products(*))').eq('user_id', userId);
+    if (data) processOrders(data);
+  };
+
+  const fetchAllOrders = async () => {
+    const { data } = await supabase.from('orders').select('*, order_items(*, products(*))');
+    if (data) processOrders(data);
+  };
+
+  const processOrders = (data: any[]) => {
+    const formatted: Order[] = data.map(o => ({
+      id: o.id,
+      userId: o.user_id,
+      total: Number(o.total_amount),
+      subtotal: Number(o.total_amount) - 80, // rough calc if shipping isn't detailed, or derive from items
+      shippingFee: 80,
+      status: o.status,
+      paymentMethod: o.payment_method,
+      deliveryMethod: o.delivery_option,
+      address: '',
+      createdAt: o.created_at,
+      items: o.order_items.map((i: any) => ({
+        productId: i.product_id,
+        productName: i.products?.name || 'Unknown',
+        price: Number(i.price_at_time),
+        quantity: i.quantity
+      }))
+    }));
+    setOrders(formatted);
+  };
+
+  const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      console.error("Login Error:", error);
+      return { success: false, message: error.message };
+    }
+    return { success: true };
+  };
+
+  const sellerLogin = async (email: string, password: string): Promise<boolean> => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return false;
+    
+    // Verify role
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
+    if (profile?.role === 'seller') {
+      return true;
+    } else {
+      await supabase.auth.signOut();
+      return false;
+    }
+  };
+
+  const logout = async () => { await supabase.auth.signOut(); };
+  const sellerLogout = async () => { await supabase.auth.signOut(); };
+
+  const register = async (data: any): Promise<{ success: boolean; message: string }> => {
+    const { data: authData, error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          full_name: data.name,
+          role: 'buyer'
+        }
+      }
+    });
+    if (error) return { success: false, message: error.message };
+    
+    // Auth trigger should create the profile, but let's upsert to be safe since it seems to be failing
+    if (authData?.user) {
+      const { error: upsertError } = await supabase.from('profiles').upsert({
+        id: authData.user.id,
+        email: data.email,
+        full_name: data.name,
+        address: data.address,
+        mobile: data.mobile,
+        role: 'buyer'
+      });
+      if (upsertError) {
+          console.error("Failed to upsert profile during registration:", upsertError);
+      }
+    }
+    
     return { success: true, message: 'Registration successful!' };
   };
 
@@ -420,47 +349,103 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => setCart([]);
 
-  const placeOrder = (orderData: Omit<Order, 'id' | 'userId' | 'createdAt' | 'status'>): string => {
-    const orderId = `ord-${Date.now()}`;
-    const newOrder: Order = {
-      ...orderData,
-      id: orderId,
-      userId: currentUser?.id || 'guest',
-      status: 'Processing',
-      createdAt: new Date().toISOString(),
-    };
-    setOrders(prev => [...prev, newOrder]);
-    // Update stock
-    orderData.items.forEach(item => {
-      setProducts(prev => prev.map(p =>
-        p.id === item.productId
-          ? { ...p, stock: Math.max(0, p.stock - item.quantity), sold: p.sold + item.quantity }
-          : p
-      ));
-    });
+  const placeOrder = async (orderData: any): Promise<string | null> => {
+    if (!currentUser) return null;
+
+    const { data: order, error } = await supabase.from('orders').insert({
+      user_id: currentUser.id,
+      total_amount: orderData.total,
+      payment_method: orderData.paymentMethod,
+      delivery_option: orderData.deliveryMethod,
+      status: 'Processing'
+    }).select().single();
+
+    if (error || !order) return null;
+
+    const itemsToInsert = orderData.items.map((i: any) => ({
+      order_id: order.id,
+      product_id: i.productId,
+      quantity: i.quantity,
+      price_at_time: i.price
+    }));
+
+    await supabase.from('order_items').insert(itemsToInsert);
+
+    // Provide optimistic UX
+    setOrders(prev => [...prev, { ...orderData, id: order.id, userId: currentUser.id, status: 'Processing', createdAt: new Date().toISOString() }]);
+    
+    // Optimistically update stock and sold count in local state
+    setProducts(prev => prev.map(p => {
+      const orderedItem = orderData.items.find((i: any) => i.productId === p.id);
+      if (orderedItem) {
+        return { ...p, stock: p.stock - orderedItem.quantity, sold: (p.sold || 0) + orderedItem.quantity };
+      }
+      return p;
+    }));
+
     clearCart();
-    return orderId;
+    
+    return order.id;
   };
 
-  const addProduct = (product: Omit<Product, 'id' | 'createdAt' | 'sold'>) => {
-    const newProduct: Product = {
-      ...product,
-      id: `p-${Date.now()}`,
-      sold: 0,
-      createdAt: new Date().toISOString(),
-    };
-    setProducts(prev => [...prev, newProduct]);
+  const addProduct = async (product: any) => {
+    const { data, error } = await supabase.from('products').insert({
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      stock: product.stock,
+      category: product.category,
+      is_featured: product.featured || false,
+      image_url: product.image,
+      tags: product.tags || []
+    }).select().single();
+
+    if (data && !error) {
+      const newP: Product = {
+        ...product,
+        id: data.id,
+        image: data.image_url,
+        featured: data.is_featured,
+        createdAt: data.created_at,
+        sold: 0
+      };
+      setProducts(prev => [...prev, newP]);
+    }
   };
 
-  const updateProduct = (id: string, updates: Partial<Product>) => {
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+  const updateProduct = async (id: string, updates: Partial<Product>) => {
+    const dbUpdates: any = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.description !== undefined) dbUpdates.description = updates.description;
+    if (updates.price !== undefined) dbUpdates.price = updates.price;
+    if (updates.stock !== undefined) dbUpdates.stock = updates.stock;
+    if (updates.category !== undefined) dbUpdates.category = updates.category;
+    if (updates.featured !== undefined) dbUpdates.is_featured = updates.featured;
+    if (updates.image !== undefined) dbUpdates.image_url = updates.image;
+    if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
+
+    const { error } = await supabase.from('products').update(dbUpdates).eq('id', id);
+    if (!error) {
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    }
   };
 
-  const deleteProduct = (id: string) => {
+  const deleteProduct = async (id: string) => {
+    await supabase.from('products').delete().eq('id', id);
     setProducts(prev => prev.filter(p => p.id !== id));
   };
 
-  const updateStorefront = (settings: Partial<StorefrontSettings>) => {
+  const updateStorefront = async (settings: Partial<StorefrontSettings>) => {
+    const dbUpdates: any = {};
+    if (settings.bannerTitle !== undefined) dbUpdates.banner_title = settings.bannerTitle;
+    if (settings.bannerSubtitle !== undefined) dbUpdates.banner_subtitle = settings.bannerSubtitle;
+    if (settings.bannerCta !== undefined) dbUpdates.banner_cta = settings.bannerCta;
+    if (settings.announcement !== undefined) dbUpdates.announcement = settings.announcement;
+    if (settings.showAnnouncement !== undefined) dbUpdates.show_announcement = settings.showAnnouncement;
+    if (settings.featuredTags !== undefined) dbUpdates.featured_tags = settings.featuredTags;
+    if (settings.heroImage !== undefined) dbUpdates.hero_image = settings.heroImage;
+
+    await supabase.from('storefront_settings').update(dbUpdates).eq('id', 1);
     setStorefrontSettings(prev => ({ ...prev, ...settings }));
   };
 
@@ -468,7 +453,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      users, currentUser, currentSeller, products, cart, orders, storefrontSettings,
+      users: [], currentUser, currentSeller, products, cart, orders, storefrontSettings,
       login, sellerLogin, logout, sellerLogout, register,
       addToCart, updateCartItem, removeFromCart, clearCart, placeOrder,
       addProduct, updateProduct, deleteProduct, updateStorefront, getProductById,

@@ -13,19 +13,22 @@ export function SellerLogin() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      const success = sellerLogin(email, password);
+    try {
+      const success = await sellerLogin(email, password);
       if (success) {
         navigate('/seller/dashboard');
       } else {
         setError('Invalid seller credentials. Please try again.');
       }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during login.');
+    } finally {
       setLoading(false);
-    }, 700);
+    }
   };
 
   return (

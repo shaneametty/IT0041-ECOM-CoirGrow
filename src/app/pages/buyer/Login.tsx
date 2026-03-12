@@ -14,19 +14,24 @@ export function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      const success = login(email, password);
-      if (success) {
+    try {
+      const cleanEmail = email.trim();
+      console.log(`Attempting login for: '${cleanEmail}' (password length: ${password.length})`);
+      const result = await login(cleanEmail, password);
+      if (result.success) {
         navigate('/');
       } else {
-        setError('Invalid email or password. Please try again.');
+        setError(result.message || 'Invalid email or password. Please try again.');
       }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during login.');
+    } finally {
       setLoading(false);
-    }, 600);
+    }
   };
 
   return (

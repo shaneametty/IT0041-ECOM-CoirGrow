@@ -25,8 +25,8 @@ export function Profile() {
   const totalSpent = userOrders.reduce((sum, o) => sum + o.total, 0);
   const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 

@@ -33,8 +33,8 @@ export function StorefrontManager() {
     }));
   };
 
-  const handleSave = () => {
-    updateStorefront(form);
+  const handleSave = async () => {
+    await updateStorefront(form);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };

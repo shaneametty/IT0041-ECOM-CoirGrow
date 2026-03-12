@@ -20,8 +20,8 @@ export function BuyerNav() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
     setMenuOpen(false);
   };

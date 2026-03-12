@@ -48,20 +48,20 @@ export function Inventory() {
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name || !form.description || form.price <= 0) {
       alert('Please fill in all required fields.'); return;
     }
     if (editingId) {
-      updateProduct(editingId, form);
+      await updateProduct(editingId, form);
     } else {
-      addProduct(form);
+      await addProduct(form);
     }
     setShowModal(false);
   };
 
-  const handleDelete = (id: string) => {
-    deleteProduct(id);
+  const handleDelete = async (id: string) => {
+    await deleteProduct(id);
     setDeleteConfirm(null);
   };
 

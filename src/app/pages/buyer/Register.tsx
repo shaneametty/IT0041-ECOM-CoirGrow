@@ -39,7 +39,7 @@ export function Register() {
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setServerError('');
     const validationErrors = validate();
@@ -48,8 +48,8 @@ export function Register() {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      const result = register({
+    try {
+      const result = await register({
         email: form.email,
         password: form.password,
         name: form.name,
@@ -62,8 +62,11 @@ export function Register() {
       } else {
         setServerError(result.message);
       }
+    } catch (err: any) {
+      setServerError(err.message || 'An error occurred during registration.');
+    } finally {
       setLoading(false);
-    }, 700);
+    }
   };
 
   const inputClass = (field: string) =>
