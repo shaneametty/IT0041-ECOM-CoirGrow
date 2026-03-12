@@ -1,7 +1,7 @@
 
   # E-commerce Gardening Website
 
-  This is a code bundle for E-commerce Gardening Website. The original project is available at https://www.figma.com/design/UfQ69pJ9KLbiCU0Yq8rZmf/E-commerce-Gardening-Website.
+  This repository contains the frontend and backend codebase for **CoirGrow PH**, an e-commerce platform dedicated to sustainable coconut coir gardening products.
 
   ## Running the code
 
